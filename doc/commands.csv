@@ -1,0 +1,14 @@
+"Command Name","Command Value","Data 0","Data 1","Data 2"
+"Status",0x10,Undefined,Undefined,Undefined
+"Reset the cumulative number of pedestrians on the left side to zero",0x20,Undefined,Undefined,Undefined
+"Reset the cumulative number of pedestrians on the right side to zero",0x21,Undefined,Undefined,Undefined
+"Restart device",0x35,0x60,Undefined,Undefined
+"Left Open",0x80,Value,Undefined,Undefined
+"Left Always Open",0x81,Undefined,Undefined,Undefined
+"Right Open",0x82,Value,Undefined,Undefined
+"Right Always Open",0x83,Undefined,Undefined,Undefined
+"Close Gate",0x84,Undefined,Undefined,Undefined
+"Forbidden Left Passage",0x88,Undefined,Undefined,Undefined
+"Forbidden Right Passage",0x89,Undefined,Undefined,Undefined
+"Disable Left and Right Passage Restrictions",0x8F,Undefined,Undefined,Undefined
+"Set Parameters",0x96,undefined,Value,Undefined

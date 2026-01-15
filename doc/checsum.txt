@@ -1,0 +1,10 @@
+Sender Checksum Algorithm Function (C Language):
+
+unsigned char TX_CheckSum(unsigned char *buf, unsigned char len) // buf is the array, len is the length of the array. {  unsigned char i,ret=0;    for(i=0;i<len;i++)  {   ret += *(buf++);  }  ret = ~ret;    return ret;//Return Checksum Value }
+
+
+Receiver Checksum Algorithm Function (C Language):
+
+unsigned char RX_CheckSum(unsigned char *buf, unsigned char len)//buf is the array, len is the length of the array.  unsigned char i,ret=0;    for(i=0; i<len;i++)  {   ret += *(buf++);  }  ret =ret;    return ret+1;//return ret+1; // If the function returns a value of 0, it means that the data is correct. }
+
+
