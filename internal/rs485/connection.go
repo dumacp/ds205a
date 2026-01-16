@@ -124,3 +124,19 @@ func (c *Connection) Flush() error {
 func (c *Connection) IsOpen() bool {
 	return !c.closed
 }
+
+// SetReadTimeout configura el timeout de lectura
+func (c *Connection) SetReadTimeout(timeout time.Duration) error {
+	if c.closed {
+		return ErrConnectionClosed
+	}
+	return c.port.SetReadTimeout(timeout)
+}
+
+// SetWriteTimeout configura el timeout de escritura
+func (c *Connection) SetWriteTimeout(timeout time.Duration) error {
+	if c.closed {
+		return ErrConnectionClosed
+	}
+	return c.port.SetWriteTimeout(timeout)
+}

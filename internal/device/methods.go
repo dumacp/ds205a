@@ -116,8 +116,8 @@ func (d *Device) Write(data []byte) error {
 	return nil
 }
 
-// Read lee datos del dispositivo
-func (d *Device) Read(buffer []byte) (int, error) {
+// Read lee datos del dispositivo manejando fragmentación de tramas
+func (d *Device) Read(ctx context.Context, buffer []byte) (int, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -125,22 +125,74 @@ func (d *Device) Read(buffer []byte) (int, error) {
 		return 0, ErrDeviceNotOpen
 	}
 
-	n, err := d.conn.Read(buffer)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read data: %w", err)
+	// Buffer para acumular datos
+	var accumulated []byte
+	tempBuffer := make([]byte, 32) // Leer chunks más grandes
+
+	// Leer datos hasta encontrar trama completa o timeout
+	maxReadAttempts := 3
+
+	initialByte := false
+
+	for attempt := 0; attempt < maxReadAttempts; attempt++ {
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		default:
+		}
+		n, err := d.conn.Read(tempBuffer)
+		if err != nil {
+			if n <= 0 && len(accumulated) == 0 {
+				return len(accumulated), err
+			}
+		}
+
+		if n > 0 {
+			accumulated = append(accumulated, tempBuffer[:n]...)
+			d.logger.Debug("Read chunk:", "bytes", n, "total", len(accumulated), "data", fmt.Sprintf("[% 02X]", tempBuffer[:n]))
+
+			// Buscar header en los datos acumulados
+			headerPos := -1
+			if !initialByte {
+				for i, b := range accumulated {
+					if b == protocol.ResponseHeader {
+						headerPos = i
+						initialByte = true
+						break
+					}
+				}
+			}
+
+			if headerPos >= 0 {
+				// Encontramos el header, descartar datos anteriores
+				if headerPos > 0 {
+					d.logger.Debug("Discarding bytes before header:", "count", headerPos)
+					accumulated = accumulated[headerPos:]
+				}
+			}
+
+			// Verificar si tenemos la trama completa
+			if initialByte && len(accumulated) >= protocol.ResponseSize {
+				copy(buffer, accumulated[:protocol.ResponseSize])
+				d.logger.Debug("Complete frame received:", "data", fmt.Sprintf("[% 02X]", buffer[:protocol.ResponseSize]))
+				return protocol.ResponseSize, nil
+			}
+		}
 	}
 
-	if n > 0 {
-		d.logger.Debug("RX:", "data", fmt.Sprintf("[% 02X]", buffer[:n]), "bytes", n)
-	} else {
-		d.logger.Debug("RX:", "data", "[]", "bytes", n)
+	// Si llegamos aquí, no se completó la trama
+	if len(accumulated) > 0 {
+		copy(buffer, accumulated)
+		d.logger.Debug("Timeout with incomplete frame:", "received", len(accumulated), "expected", protocol.ResponseSize)
+		return len(accumulated), fmt.Errorf("timeout: incomplete frame received %d bytes, expected %d", len(accumulated), protocol.ResponseSize)
 	}
 
-	return n, nil
+	d.logger.Debug("No data received")
+	return 0, fmt.Errorf("timeout: no data received")
 }
 
 // SendCommand envía un comando y espera respuesta
-func (d *Device) SendCommand(cmd protocol.CommandType, data []byte) (*protocol.Response, error) {
+func (d *Device) SendCommand(ctx context.Context, cmd protocol.CommandType, data []byte) (*protocol.Response, error) {
 	if !d.IsOpen() {
 		return nil, ErrDeviceNotOpen
 	}
@@ -170,7 +222,7 @@ func (d *Device) SendCommand(cmd protocol.CommandType, data []byte) (*protocol.R
 
 		// Leer respuesta
 		responseBuffer := make([]byte, protocol.ResponseSize)
-		n, err := d.Read(responseBuffer)
+		n, err := d.Read(ctx, responseBuffer)
 		if err != nil {
 			if attempt == d.config.RetryCount {
 				return nil, fmt.Errorf("failed to read response after %d attempts: %w",
@@ -241,7 +293,7 @@ func validateConfig(config *Config) error {
 
 // GetStatus obtiene el estado actual del dispositivo
 func (d *Device) GetStatus(ctx context.Context) (*Status, error) {
-	response, err := d.SendCommand(protocol.CmdGetStatus, nil)
+	response, err := d.SendCommand(ctx, protocol.CmdGetStatus, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get status: %w", err)
 	}
@@ -272,7 +324,7 @@ func (d *Device) GetStatus(ctx context.Context) (*Status, error) {
 
 // LeftOpen abre el paso por la izquierda
 func (d *Device) LeftOpen(ctx context.Context, value uint8) error {
-	_, err := d.SendCommand(protocol.CmdLeftOpen, []byte{value})
+	_, err := d.SendCommand(ctx, protocol.CmdLeftOpen, []byte{value})
 	if err != nil {
 		return fmt.Errorf("failed to open left passage: %w", err)
 	}
@@ -281,7 +333,7 @@ func (d *Device) LeftOpen(ctx context.Context, value uint8) error {
 
 // LeftAlwaysOpen mantiene siempre abierto el paso izquierdo
 func (d *Device) LeftAlwaysOpen(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdLeftAlwaysOpen, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdLeftAlwaysOpen, nil)
 	if err != nil {
 		return fmt.Errorf("failed to set left always open: %w", err)
 	}
@@ -290,7 +342,7 @@ func (d *Device) LeftAlwaysOpen(ctx context.Context) error {
 
 // RightOpen abre el paso por la derecha
 func (d *Device) RightOpen(ctx context.Context, value uint8) error {
-	_, err := d.SendCommand(protocol.CmdRightOpen, []byte{value})
+	_, err := d.SendCommand(ctx, protocol.CmdRightOpen, []byte{value})
 	if err != nil {
 		return fmt.Errorf("failed to open right passage: %w", err)
 	}
@@ -299,7 +351,7 @@ func (d *Device) RightOpen(ctx context.Context, value uint8) error {
 
 // RightAlwaysOpen mantiene siempre abierto el paso derecho
 func (d *Device) RightAlwaysOpen(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdRightAlwaysOpen, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdRightAlwaysOpen, nil)
 	if err != nil {
 		return fmt.Errorf("failed to set right always open: %w", err)
 	}
@@ -308,7 +360,7 @@ func (d *Device) RightAlwaysOpen(ctx context.Context) error {
 
 // CloseGate cierra la puerta/torniquete
 func (d *Device) CloseGate(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdCloseGate, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdCloseGate, nil)
 	if err != nil {
 		return fmt.Errorf("failed to close gate: %w", err)
 	}
@@ -317,7 +369,7 @@ func (d *Device) CloseGate(ctx context.Context) error {
 
 // ForbiddenLeftPassage prohíbe el paso por la izquierda
 func (d *Device) ForbiddenLeftPassage(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdForbiddenLeftPassage, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdForbiddenLeftPassage, nil)
 	if err != nil {
 		return fmt.Errorf("failed to forbid left passage: %w", err)
 	}
@@ -326,7 +378,7 @@ func (d *Device) ForbiddenLeftPassage(ctx context.Context) error {
 
 // ForbiddenRightPassage prohíbe el paso por la derecha
 func (d *Device) ForbiddenRightPassage(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdForbiddenRightPassage, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdForbiddenRightPassage, nil)
 	if err != nil {
 		return fmt.Errorf("failed to forbid right passage: %w", err)
 	}
@@ -335,7 +387,7 @@ func (d *Device) ForbiddenRightPassage(ctx context.Context) error {
 
 // DisablePassageRestrictions deshabilita las restricciones de paso
 func (d *Device) DisablePassageRestrictions(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdDisablePassageRestrictions, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdDisablePassageRestrictions, nil)
 	if err != nil {
 		return fmt.Errorf("failed to disable passage restrictions: %w", err)
 	}
@@ -344,7 +396,7 @@ func (d *Device) DisablePassageRestrictions(ctx context.Context) error {
 
 // ResetLeftCounters resetea los contadores del lado izquierdo
 func (d *Device) ResetLeftCounters(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdResetLeftCounters, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdResetLeftCounters, nil)
 	if err != nil {
 		return fmt.Errorf("failed to reset left counters: %w", err)
 	}
@@ -353,7 +405,7 @@ func (d *Device) ResetLeftCounters(ctx context.Context) error {
 
 // ResetRightCounters resetea los contadores del lado derecho
 func (d *Device) ResetRightCounters(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdResetRightCounters, nil)
+	_, err := d.SendCommand(ctx, protocol.CmdResetRightCounters, nil)
 	if err != nil {
 		return fmt.Errorf("failed to reset right counters: %w", err)
 	}
@@ -363,7 +415,7 @@ func (d *Device) ResetRightCounters(ctx context.Context) error {
 // GetDeviceInfo obtiene información del dispositivo
 func (d *Device) GetDeviceInfo(ctx context.Context) (*DeviceInfo, error) {
 	// Usando el comando de status para obtener información básica
-	response, err := d.SendCommand(protocol.CmdGetStatus, nil)
+	response, err := d.SendCommand(ctx, protocol.CmdGetStatus, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get device info: %w", err)
 	}
@@ -378,7 +430,7 @@ func (d *Device) GetDeviceInfo(ctx context.Context) (*DeviceInfo, error) {
 
 // Reset resetea el dispositivo
 func (d *Device) Reset(ctx context.Context) error {
-	_, err := d.SendCommand(protocol.CmdRestartDevice, []byte{0x60})
+	_, err := d.SendCommand(ctx, protocol.CmdRestartDevice, []byte{0x60})
 	if err != nil {
 		return fmt.Errorf("failed to reset device: %w", err)
 	}
@@ -387,7 +439,7 @@ func (d *Device) Reset(ctx context.Context) error {
 
 // SetParameters establece parámetros del dispositivo
 func (d *Device) SetParameters(ctx context.Context, value uint8) error {
-	_, err := d.SendCommand(protocol.CmdSetParameters, []byte{value})
+	_, err := d.SendCommand(ctx, protocol.CmdSetParameters, []byte{value})
 	if err != nil {
 		return fmt.Errorf("failed to set parameters: %w", err)
 	}

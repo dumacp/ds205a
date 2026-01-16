@@ -27,7 +27,8 @@ func main() {
 	}
 	defer device.Close()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	// Obtener información del dispositivo
 	fmt.Println("\nGetting device info...")

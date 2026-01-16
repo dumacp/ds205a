@@ -97,7 +97,8 @@ func main() {
 	}
 	defer device.Close()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
 
 	// Ejecutar comando
 	err = executeCommand(device, Command(*command), *value, ctx)

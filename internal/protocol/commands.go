@@ -86,7 +86,7 @@ const (
 	ResponseHeader   = 0x7F // Starting Position para respuestas
 	FrameUndefined   = 0x00 // Campo undefined
 	FrameSize        = 8    // Tamaño fijo del frame de comando
-	ResponseSize     = 16   // Tamaño fijo del frame de respuesta
+	ResponseSize     = 18   // Tamaño fijo del frame de respuesta
 	DataSize         = 3    // 3 bytes de datos (Data 0, Data 1, Data 2)
 	RestartParam     = 0x60 // Parámetro requerido para restart
 	SuccessExecution = 0x55 // Command Execution value para éxito
@@ -170,9 +170,9 @@ func ParseResponse(data []byte, expectedMachineID byte) (*Response, error) {
 		InfraredStatus:     data[12], // Infrared Status (posición 12)
 		CommandExecution:   data[13], // Command Execution (posición 13)
 		PowerSupplyVoltage: data[14], // Power Supply Voltage (posición 14)
-		Undefined1:         data[13], // Placeholder para mantener compatibilidad
-		Undefined2:         data[14], // Placeholder para mantener compatibilidad
-		Checksum:           data[15], // Checksum (último byte del frame de 16)
+		Undefined1:         data[15], // Placeholder para mantener compatibilidad
+		Undefined2:         data[16], // Placeholder para mantener compatibilidad
+		Checksum:           data[17], // Checksum (último byte del frame de 18)
 	}
 
 	// Extraer contadores de 3 bytes cada uno (6 bytes contiguos: posiciones 6-11)
