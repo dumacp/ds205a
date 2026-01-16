@@ -53,6 +53,7 @@ func (d *Device) Open() error {
 		Parity:       d.config.Parity,
 		ReadTimeout:  d.config.ReadTimeout,
 		WriteTimeout: d.config.WriteTimeout,
+		Debug:        d.config.Debug,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to open RS485 connection: %w", err)

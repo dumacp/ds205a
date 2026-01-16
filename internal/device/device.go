@@ -38,6 +38,7 @@ type Config struct {
 	WriteTimeout time.Duration // Timeout de escritura (default: 2s)
 	DeviceID     byte          // ID del dispositivo (default: 0x01)
 	RetryCount   int           // Número de reintentos (default: 3)
+	Debug        bool          // Habilitar debug de comunicación serial
 }
 
 // Logger interface para logging personalizable

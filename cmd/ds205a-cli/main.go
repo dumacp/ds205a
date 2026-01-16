@@ -40,6 +40,7 @@ func main() {
 		timeout  = flag.Duration("timeout", 5*time.Second, "Operation timeout")
 		command  = flag.String("cmd", "", "Command to execute (see available commands below)")
 		value    = flag.Int("value", 1, "Value parameter for commands that require it")
+		debug    = flag.Bool("debug", false, "Enable debug output (shows TX/RX data)")
 	)
 
 	// Personalizar la salida de ayuda
@@ -56,7 +57,8 @@ func main() {
 		fmt.Printf("  %s -port /dev/ttyUSB1 -baud 115200 -cmd %s\n", os.Args[0], CmdInfo)
 		fmt.Printf("  %s -cmd %s -value 1\n", os.Args[0], CmdLeftOpen)
 		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdDisableRestrictions)
-		fmt.Printf("  %s -cmd %s\n\n", os.Args[0], CmdCloseGate)
+		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdCloseGate)
+		fmt.Printf("  %s -debug -cmd %s  # Enable debug output\n\n", os.Args[0], CmdStatus)
 	}
 
 	flag.Parse()
@@ -76,7 +78,7 @@ func main() {
 	}
 
 	// Crear dispositivo
-	device, err := ds205a.New(*port, byte(*deviceID), *baudRate, *timeout)
+	device, err := ds205a.NewWithDebug(*port, byte(*deviceID), *baudRate, *timeout, *debug)
 	if err != nil {
 		log.Fatalf("Error creating device: %v", err)
 	}

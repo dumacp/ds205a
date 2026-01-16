@@ -14,6 +14,7 @@ func main() {
 	fmt.Println("==============================")
 
 	// Crear dispositivo con nueva API (puerto, ID, baudrate, timeout)
+	// Para habilitar debug, usar: ds205a.NewWithDebug("/dev/ttyUSB0", 0x01, 9600, 5*time.Second, true)
 	device, err := ds205a.New("/dev/ttyUSB0", 0x01, 9600, 5*time.Second)
 	if err != nil {
 		log.Fatalf("Error creating device: %v", err)

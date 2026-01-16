@@ -37,6 +37,11 @@ type Turnstile struct {
 
 // New crea una nueva instancia de Turnstile
 func New(port string, machineNumber uint8, baudRate int, timeout time.Duration) (*Turnstile, error) {
+	return NewWithDebug(port, machineNumber, baudRate, timeout, false)
+}
+
+// NewWithDebug crea una nueva instancia de Turnstile con opción de debug
+func NewWithDebug(port string, machineNumber uint8, baudRate int, timeout time.Duration, debug bool) (*Turnstile, error) {
 	config := &device.Config{
 		Port:         port,
 		BaudRate:     baudRate,
@@ -48,6 +53,7 @@ func New(port string, machineNumber uint8, baudRate int, timeout time.Duration) 
 		WriteTimeout: 2 * time.Second,
 		DeviceID:     machineNumber,
 		RetryCount:   3,
+		Debug:        debug,
 	}
 
 	dev, err := device.New(config)

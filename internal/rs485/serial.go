@@ -67,13 +67,22 @@ func (sp *serialPort) Read(p []byte) (int, error) {
 		return 0, ErrConnectionClosed
 	}
 
-	return sp.port.Read(p)
+	n, err := sp.port.Read(p)
+	if sp.config.Debug && n > 0 {
+		fmt.Printf("[DEBUG] RX: [% 02X]\n", p[:n])
+	}
+
+	return n, err
 }
 
 // Write escribe datos al puerto serial
 func (sp *serialPort) Write(p []byte) (int, error) {
 	if sp.port == nil {
 		return 0, ErrConnectionClosed
+	}
+
+	if sp.config.Debug {
+		fmt.Printf("[DEBUG] TX: [% 02X]\n", p)
 	}
 
 	return sp.port.Write(p)

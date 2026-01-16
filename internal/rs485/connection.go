@@ -13,6 +13,7 @@ type Config struct {
 	Parity       string        // Paridad
 	ReadTimeout  time.Duration // Timeout de lectura
 	WriteTimeout time.Duration // Timeout de escritura
+	Debug        bool          // Habilitar debug de comunicación serial
 }
 
 // Connection representa una conexión RS485
