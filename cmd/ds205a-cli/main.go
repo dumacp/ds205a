@@ -40,7 +40,7 @@ func main() {
 		timeout  = flag.Duration("timeout", 5*time.Second, "Operation timeout")
 		command  = flag.String("cmd", "", "Command to execute (see available commands below)")
 		value    = flag.Int("value", 1, "Value parameter for commands that require it")
-		verbose  = flag.String("verbose", "silent", "Log level: silent, error, warn, info, debug")
+		verbose  = flag.String("verbose", "warn", "Log level: silent, error, warn, info, debug")
 	)
 
 	// Personalizar la salida de ayuda
