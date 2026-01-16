@@ -40,7 +40,7 @@ func main() {
 		timeout  = flag.Duration("timeout", 5*time.Second, "Operation timeout")
 		command  = flag.String("cmd", "", "Command to execute (see available commands below)")
 		value    = flag.Int("value", 1, "Value parameter for commands that require it")
-		debug    = flag.Bool("debug", false, "Enable debug output (shows TX/RX data)")
+		verbose  = flag.String("verbose", "silent", "Log level: silent, error, warn, info, debug")
 	)
 
 	// Personalizar la salida de ayuda
@@ -58,7 +58,8 @@ func main() {
 		fmt.Printf("  %s -cmd %s -value 1\n", os.Args[0], CmdLeftOpen)
 		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdDisableRestrictions)
 		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdCloseGate)
-		fmt.Printf("  %s -debug -cmd %s  # Enable debug output\n\n", os.Args[0], CmdStatus)
+		fmt.Printf("  %s -verbose info -cmd %s    # Enable info logging\n", os.Args[0], CmdStatus)
+		fmt.Printf("  %s -verbose debug -cmd %s   # Enable debug logging (shows TX/RX)\n\n", os.Args[0], CmdStatus)
 	}
 
 	flag.Parse()
@@ -77,8 +78,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Parsear nivel de log
+	logLevel := parseLogLevel(*verbose)
+	if logLevel == -1 {
+		fmt.Printf("Invalid log level: %s\nValid levels: silent, error, warn, info, debug\n", *verbose)
+		os.Exit(1)
+	}
+
 	// Crear dispositivo
-	device, err := ds205a.NewWithDebug(*port, byte(*deviceID), *baudRate, *timeout, *debug)
+	device, err := ds205a.NewWithLogLevel(*port, byte(*deviceID), *baudRate, *timeout, ds205a.LogLevel(logLevel))
 	if err != nil {
 		log.Fatalf("Error creating device: %v", err)
 	}
@@ -326,5 +334,23 @@ func printCommandsHelp() {
 			}
 		}
 		fmt.Println()
+	}
+}
+
+// parseLogLevel convierte string a LogLevel
+func parseLogLevel(level string) int {
+	switch level {
+	case "silent":
+		return int(ds205a.LogLevelSilent)
+	case "error":
+		return int(ds205a.LogLevelError)
+	case "warn":
+		return int(ds205a.LogLevelWarn)
+	case "info":
+		return int(ds205a.LogLevelInfo)
+	case "debug":
+		return int(ds205a.LogLevelDebug)
+	default:
+		return -1
 	}
 }

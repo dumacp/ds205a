@@ -10,9 +10,21 @@ import (
 // Direction representa la dirección de paso
 type Direction = device.Direction
 
+// LogLevel representa el nivel de logging
+type LogLevel = device.LogLevel
+
 const (
 	DirectionIn  = device.DirectionIn  // Entrada
 	DirectionOut = device.DirectionOut // Salida
+)
+
+// Niveles de logging disponibles
+const (
+	LogLevelSilent = device.LogLevelSilent // Sin logs
+	LogLevelError  = device.LogLevelError  // Solo errores
+	LogLevelWarn   = device.LogLevelWarn   // Advertencias y errores
+	LogLevelInfo   = device.LogLevelInfo   // Info, advertencias y errores
+	LogLevelDebug  = device.LogLevelDebug  // Todos los logs
 )
 
 // PassageDirection representa la dirección de paso específica del dispositivo
@@ -37,11 +49,11 @@ type Turnstile struct {
 
 // New crea una nueva instancia de Turnstile
 func New(port string, machineNumber uint8, baudRate int, timeout time.Duration) (*Turnstile, error) {
-	return NewWithDebug(port, machineNumber, baudRate, timeout, false)
+	return NewWithLogLevel(port, machineNumber, baudRate, timeout, device.LogLevelSilent)
 }
 
-// NewWithDebug crea una nueva instancia de Turnstile con opción de debug
-func NewWithDebug(port string, machineNumber uint8, baudRate int, timeout time.Duration, debug bool) (*Turnstile, error) {
+// NewWithLogLevel crea una nueva instancia de Turnstile con nivel de logging específico
+func NewWithLogLevel(port string, machineNumber uint8, baudRate int, timeout time.Duration, logLevel device.LogLevel) (*Turnstile, error) {
 	config := &device.Config{
 		Port:         port,
 		BaudRate:     baudRate,
@@ -53,10 +65,9 @@ func NewWithDebug(port string, machineNumber uint8, baudRate int, timeout time.D
 		WriteTimeout: 2 * time.Second,
 		DeviceID:     machineNumber,
 		RetryCount:   3,
-		Debug:        debug,
 	}
 
-	dev, err := device.New(config)
+	dev, err := device.NewWithLogger(config, device.GetLoggerWithLevel(logLevel))
 	if err != nil {
 		return nil, err
 	}

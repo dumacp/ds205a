@@ -13,7 +13,11 @@ type Config struct {
 	Parity       string        // Paridad
 	ReadTimeout  time.Duration // Timeout de lectura
 	WriteTimeout time.Duration // Timeout de escritura
-	Debug        bool          // Habilitar debug de comunicación serial
+}
+
+// Logger interface para logging en RS485
+type Logger interface {
+	Debug(msg string, args ...interface{})
 }
 
 // Connection representa una conexión RS485

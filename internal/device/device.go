@@ -2,6 +2,7 @@ package device
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,8 +39,18 @@ type Config struct {
 	WriteTimeout time.Duration // Timeout de escritura (default: 2s)
 	DeviceID     byte          // ID del dispositivo (default: 0x01)
 	RetryCount   int           // Número de reintentos (default: 3)
-	Debug        bool          // Habilitar debug de comunicación serial
 }
+
+// LogLevel representa el nivel de logging
+type LogLevel int
+
+const (
+	LogLevelSilent LogLevel = iota // Sin logs
+	LogLevelError                  // Solo errores
+	LogLevelWarn                   // Advertencias y errores
+	LogLevelInfo                   // Info, advertencias y errores
+	LogLevelDebug                  // Todos los logs
+)
 
 // Logger interface para logging personalizable
 type Logger interface {
@@ -49,17 +60,59 @@ type Logger interface {
 	Error(msg string, args ...interface{})
 }
 
-// defaultLogger implementación básica de logger
-type defaultLogger struct{}
+// defaultLogger implementación básica de logger con niveles
+type defaultLogger struct {
+	level LogLevel
+}
 
-func (l *defaultLogger) Debug(msg string, args ...interface{}) {}
-func (l *defaultLogger) Info(msg string, args ...interface{})  {}
-func (l *defaultLogger) Warn(msg string, args ...interface{})  {}
-func (l *defaultLogger) Error(msg string, args ...interface{}) {}
+func (l *defaultLogger) Debug(msg string, args ...interface{}) {
+	if l.level >= LogLevelDebug {
+		fmt.Printf("[DEBUG] %s", msg)
+		if len(args) > 0 {
+			fmt.Printf(" %v", args)
+		}
+		fmt.Println()
+	}
+}
 
-// GetDefaultLogger retorna el logger por defecto
+func (l *defaultLogger) Info(msg string, args ...interface{}) {
+	if l.level >= LogLevelInfo {
+		fmt.Printf("[INFO] %s", msg)
+		if len(args) > 0 {
+			fmt.Printf(" %v", args)
+		}
+		fmt.Println()
+	}
+}
+
+func (l *defaultLogger) Warn(msg string, args ...interface{}) {
+	if l.level >= LogLevelWarn {
+		fmt.Printf("[WARN] %s", msg)
+		if len(args) > 0 {
+			fmt.Printf(" %v", args)
+		}
+		fmt.Println()
+	}
+}
+
+func (l *defaultLogger) Error(msg string, args ...interface{}) {
+	if l.level >= LogLevelError {
+		fmt.Printf("[ERROR] %s", msg)
+		if len(args) > 0 {
+			fmt.Printf(" %v", args)
+		}
+		fmt.Println()
+	}
+}
+
+// GetDefaultLogger retorna el logger por defecto (sin output)
 func GetDefaultLogger() Logger {
-	return &defaultLogger{}
+	return &defaultLogger{level: LogLevelSilent}
+}
+
+// GetLoggerWithLevel retorna un logger con el nivel especificado
+func GetLoggerWithLevel(level LogLevel) Logger {
+	return &defaultLogger{level: level}
 }
 
 // Direction representa la dirección de paso

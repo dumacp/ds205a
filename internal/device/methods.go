@@ -53,7 +53,6 @@ func (d *Device) Open() error {
 		Parity:       d.config.Parity,
 		ReadTimeout:  d.config.ReadTimeout,
 		WriteTimeout: d.config.WriteTimeout,
-		Debug:        d.config.Debug,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to open RS485 connection: %w", err)
@@ -107,7 +106,7 @@ func (d *Device) Write(data []byte) error {
 		return ErrDeviceNotOpen
 	}
 
-	d.logger.Debug("Writing data", "data", fmt.Sprintf("%x", data))
+	d.logger.Debug("TX:", "data", fmt.Sprintf("[% 02X]", data))
 
 	_, err := d.conn.Write(data)
 	if err != nil {
@@ -131,7 +130,11 @@ func (d *Device) Read(buffer []byte) (int, error) {
 		return 0, fmt.Errorf("failed to read data: %w", err)
 	}
 
-	d.logger.Debug("Read data", "data", fmt.Sprintf("%x", buffer[:n]), "bytes", n)
+	if n > 0 {
+		d.logger.Debug("RX:", "data", fmt.Sprintf("[% 02X]", buffer[:n]), "bytes", n)
+	} else {
+		d.logger.Debug("RX:", "data", "[]", "bytes", n)
+	}
 
 	return n, nil
 }
