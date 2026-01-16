@@ -213,6 +213,7 @@ func (d *Device) SendCommand(ctx context.Context, cmd protocol.CommandType, data
 
 		// Escribir comando
 		if err := d.Write(frame); err != nil {
+			d.logger.Warn("Failed to write command", "error", err)
 			if attempt == d.config.RetryCount {
 				return nil, fmt.Errorf("failed to send command after %d attempts: %w",
 					d.config.RetryCount+1, err)
@@ -234,6 +235,7 @@ func (d *Device) SendCommand(ctx context.Context, cmd protocol.CommandType, data
 		// Parsear respuesta con validación de Machine ID
 		response, err = protocol.ParseResponse(responseBuffer[:n], d.config.DeviceID)
 		if err != nil {
+			d.logger.Warn("Failed to parse response", "error", err)
 			if attempt == d.config.RetryCount {
 				return nil, fmt.Errorf("failed to parse response after %d attempts: %w",
 					d.config.RetryCount+1, err)
