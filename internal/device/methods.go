@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dumacp/ds205a/internal/protocol"
-	"github.com/dumacp/ds205a/pkg/rs485"
+	"github.com/dumacp/ds205a/internal/rs485"
 )
 
 // New crea una nueva instancia del dispositivo DS205A

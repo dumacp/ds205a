@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dumacp/ds205a/pkg/rs485"
+	"github.com/dumacp/ds205a/internal/rs485"
 )
 
 var (

@@ -37,7 +37,7 @@ func (sp *serialPort) Open() error {
 	mode := &serial.Mode{
 		BaudRate: sp.config.BaudRate,
 		DataBits: sp.config.DataBits,
-		StopBits: serial.StopBits(sp.config.StopBits),
+		StopBits: parseStopBits(sp.config.StopBits),
 		Parity:   parseParity(sp.config.Parity),
 	}
 
@@ -119,6 +119,18 @@ func parseParity(parity string) serial.Parity {
 		return serial.SpaceParity
 	default:
 		return serial.NoParity
+	}
+}
+
+// parseStopBits convierte int a serial.StopBits
+func parseStopBits(stopBits int) serial.StopBits {
+	switch stopBits {
+	case 1:
+		return serial.OneStopBit
+	case 2:
+		return serial.TwoStopBits
+	default:
+		return serial.OneStopBit // default a 1 stop bit
 	}
 }
 
