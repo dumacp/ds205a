@@ -28,7 +28,7 @@ const (
 type ResponseCode byte
 
 const (
-	RespSuccess      ResponseCode = 0x00 // Comando ejecutado exitosamente
+	RespSuccess      ResponseCode = 0x55 // Comando ejecutado exitosamente (Command Execution)
 	RespError        ResponseCode = 0x01 // Error general
 	RespInvalidCmd   ResponseCode = 0x02 // Comando inválido
 	RespInvalidParam ResponseCode = 0x03 // Parámetro inválido
@@ -43,21 +43,53 @@ type Command struct {
 	Data     []byte      // Datos del comando
 }
 
-// Response representa una respuesta del torniquete
+// Response representa una respuesta del torniquete según reponse.csv
 type Response struct {
-	DeviceID     byte         // ID del dispositivo que responde
-	Command      CommandType  // Comando original
-	ResponseCode ResponseCode // Código de respuesta
-	Data         []byte       // Datos de respuesta
+	StartPosition        byte    // Starting Position (0x7F)
+	VersionNumber        byte    // Version Number
+	MachineNumber        byte    // Machine Number (debe coincidir con comando)
+	FaultEvent           byte    // Fault Event
+	GateStatus           byte    // Gate Status
+	AlarmEvent           byte    // Alarm Event
+	LeftPedestrianCount  [3]byte // Cumulative Number of Pedestrians on the Left (3 bytes)
+	RightPedestrianCount [3]byte // Cumulative Number of Pedestrians on the Right (3 bytes)
+	InfraredStatus       byte    // Infrared Status
+	CommandExecution     byte    // Command Execution (0x55 = success)
+	PowerSupplyVoltage   byte    // Power Supply Voltage
+	Undefined1           byte    // Undefined
+	Undefined2           byte    // Undefined
+	Checksum             byte    // Checksum
+}
+
+// GetLeftCount convierte los 3 bytes del contador izquierdo a uint32
+func (r *Response) GetLeftCount() uint32 {
+	return uint32(r.LeftPedestrianCount[0])<<16 |
+		uint32(r.LeftPedestrianCount[1])<<8 |
+		uint32(r.LeftPedestrianCount[2])
+}
+
+// GetRightCount convierte los 3 bytes del contador derecho a uint32
+func (r *Response) GetRightCount() uint32 {
+	return uint32(r.RightPedestrianCount[0])<<16 |
+		uint32(r.RightPedestrianCount[1])<<8 |
+		uint32(r.RightPedestrianCount[2])
+}
+
+// IsSuccess verifica si la respuesta indica éxito
+func (r *Response) IsSuccess() bool {
+	return r.CommandExecution == byte(RespSuccess)
 }
 
 // Protocol constants según CSV
 const (
-	FrameHeader    = 0x7E // Starting Position
-	FrameUndefined = 0x00 // Campo undefined
-	FrameSize      = 8    // Tamaño fijo del frame
-	DataSize       = 3    // 3 bytes de datos (Data 0, Data 1, Data 2)
-	RestartParam   = 0x60 // Parámetro requerido para restart
+	FrameHeader      = 0x7E // Starting Position para comandos
+	ResponseHeader   = 0x7F // Starting Position para respuestas
+	FrameUndefined   = 0x00 // Campo undefined
+	FrameSize        = 8    // Tamaño fijo del frame de comando
+	ResponseSize     = 16   // Tamaño fijo del frame de respuesta
+	DataSize         = 3    // 3 bytes de datos (Data 0, Data 1, Data 2)
+	RestartParam     = 0x60 // Parámetro requerido para restart
+	SuccessExecution = 0x55 // Command Execution value para éxito
 )
 
 // calculateTxChecksum implementa el algoritmo TX del documento
@@ -111,41 +143,55 @@ func BuildCommand(deviceID byte, cmd CommandType, data []byte) ([]byte, error) {
 	return frame, nil
 }
 
-// ParseResponse parsea una respuesta del dispositivo según formato CSV
-func ParseResponse(data []byte) (*Response, error) {
-	if len(data) < FrameSize {
-		return nil, fmt.Errorf("frame too small: %d bytes (expected %d)", len(data), FrameSize)
+// ParseResponse parsea una respuesta del dispositivo según reponse.csv
+func ParseResponse(data []byte, expectedMachineID byte) (*Response, error) {
+	if len(data) < ResponseSize {
+		return nil, fmt.Errorf("response frame too small: %d bytes (expected %d)", len(data), ResponseSize)
 	}
 
-	// Verificar header
-	if data[0] != FrameHeader {
-		return nil, fmt.Errorf("invalid header: 0x%02X (expected 0x%02X)", data[0], FrameHeader)
+	// Verificar header de respuesta
+	if data[0] != ResponseHeader {
+		return nil, fmt.Errorf("invalid response header: 0x%02X (expected 0x%02X)", data[0], ResponseHeader)
 	}
 
-	// Verificar checksum usando algoritmo RX
+	// Verificar checksum usando algoritmo RX (todos los bytes excepto el primer header)
 	if !ValidateRxChecksum(data[1:]) {
 		return nil, fmt.Errorf("checksum validation failed")
 	}
 
-	// Extract fields según estructura CSV
-	// [Header][Undefined][MachineNumber][Command][Data0][Data1][Data2][Checksum]
-	deviceID := data[2]             // Machine Number
-	command := CommandType(data[3]) // Command Value
+	// Extraer campos según reponse.csv
+	response := &Response{
+		StartPosition:      data[0],  // Starting Position (0x7F)
+		VersionNumber:      data[1],  // Version Number
+		MachineNumber:      data[2],  // Machine Number
+		FaultEvent:         data[3],  // Fault Event
+		GateStatus:         data[4],  // Gate Status
+		AlarmEvent:         data[5],  // Alarm Event
+		InfraredStatus:     data[12], // Infrared Status (posición 12)
+		CommandExecution:   data[13], // Command Execution (posición 13)
+		PowerSupplyVoltage: data[14], // Power Supply Voltage (posición 14)
+		Undefined1:         data[13], // Placeholder para mantener compatibilidad
+		Undefined2:         data[14], // Placeholder para mantener compatibilidad
+		Checksum:           data[15], // Checksum (último byte del frame de 16)
+	}
 
-	// Para respuestas, asumimos que el command es el echo y ResponseCode está en Data0
-	responseCode := ResponseCode(data[4]) // Data0 como código de respuesta
+	// Extraer contadores de 3 bytes cada uno (6 bytes contiguos: posiciones 6-11)
+	copy(response.LeftPedestrianCount[:], data[6:9])   // Bytes 6,7,8
+	copy(response.RightPedestrianCount[:], data[9:12]) // Bytes 9,10,11
 
-	// Extract response data (Data1 y Data2)
-	responseData := make([]byte, 2)
-	responseData[0] = data[5] // Data1
-	responseData[1] = data[6] // Data2
+	// Verificar que el Machine Number coincida
+	if response.MachineNumber != expectedMachineID {
+		return nil, fmt.Errorf("machine ID mismatch: got 0x%02X, expected 0x%02X",
+			response.MachineNumber, expectedMachineID)
+	}
 
-	return &Response{
-		DeviceID:     deviceID,
-		Command:      command,
-		ResponseCode: responseCode,
-		Data:         responseData,
-	}, nil
+	// Verificar que el comando se ejecutó exitosamente
+	if response.CommandExecution != SuccessExecution {
+		return nil, fmt.Errorf("command execution failed: 0x%02X (expected 0x%02X)",
+			response.CommandExecution, SuccessExecution)
+	}
+
+	return response, nil
 }
 
 // String methods for better debugging

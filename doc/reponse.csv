@@ -1,0 +1,5 @@
+"Starting Position","Version Number","Machine Number","Fault Event","Gate Status","Alarm Event","Cumulative Number of Pedestrians on the Left","Cumulative Number of Pedestrians on the Right","Infrared Status","Command Execution","Power Supply Voltage","Undefined","Undefined","Checksum"
+0x7F,undefined,0x01,0x00,0x00,0x00,0x000000,0x000000,0xF0,0x55,undefined,0x00,0x00,undefined
+
+
+

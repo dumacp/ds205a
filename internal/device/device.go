@@ -78,15 +78,17 @@ const (
 	PassageDirectionExit                          // Salida
 )
 
-// Status representa el estado del dispositivo
+// Status representa el estado del dispositivo según respuesta de 16 bytes
 type Status struct {
-	MachineNumber     uint8            // Número de máquina
-	Direction         PassageDirection // Dirección de paso
-	Position          uint8            // Posición
-	Reserved          uint8            // Campo reservado
-	Memory            uint8            // Estado de memoria
-	SystemVoltage     uint8            // Voltaje del sistema
-	SystemTemperature uint8            // Temperatura del sistema
+	MachineNumber        uint8  // Número de máquina
+	VersionNumber        uint8  // Número de versión
+	FaultEvent           uint8  // Evento de falla
+	GateStatus           uint8  // Estado de la puerta
+	AlarmEvent           uint8  // Evento de alarma
+	InfraredStatus       uint8  // Estado infrarrojo
+	PowerSupplyVoltage   uint8  // Voltaje de alimentación
+	LeftPedestrianCount  uint32 // Contador de peatones izquierda (3 bytes convertidos a uint32)
+	RightPedestrianCount uint32 // Contador de peatones derecha (3 bytes convertidos a uint32)
 }
 
 // DeviceInfo contiene información del dispositivo

@@ -165,7 +165,7 @@ func (d *Device) SendCommand(cmd protocol.CommandType, data []byte) (*protocol.R
 		}
 
 		// Leer respuesta
-		responseBuffer := make([]byte, protocol.FrameSize)
+		responseBuffer := make([]byte, protocol.ResponseSize)
 		n, err := d.Read(responseBuffer)
 		if err != nil {
 			if attempt == d.config.RetryCount {
@@ -175,21 +175,12 @@ func (d *Device) SendCommand(cmd protocol.CommandType, data []byte) (*protocol.R
 			continue
 		}
 
-		// Parsear respuesta
-		response, err = protocol.ParseResponse(responseBuffer[:n])
+		// Parsear respuesta con validación de Machine ID
+		response, err = protocol.ParseResponse(responseBuffer[:n], d.config.DeviceID)
 		if err != nil {
 			if attempt == d.config.RetryCount {
 				return nil, fmt.Errorf("failed to parse response after %d attempts: %w",
 					d.config.RetryCount+1, err)
-			}
-			continue
-		}
-
-		// Verificar que la respuesta corresponde al comando enviado
-		if response.Command != cmd {
-			if attempt == d.config.RetryCount {
-				return nil, fmt.Errorf("response command mismatch: got %v, expected %v",
-					response.Command, cmd)
 			}
 			continue
 		}
@@ -203,11 +194,7 @@ func (d *Device) SendCommand(cmd protocol.CommandType, data []byte) (*protocol.R
 			d.config.RetryCount+1)
 	}
 
-	// Verificar código de respuesta
-	if response.ResponseCode != protocol.RespSuccess {
-		return response, fmt.Errorf("device returned error: %v", response.ResponseCode)
-	}
-
+	// La validación del código de respuesta ya se hace en ParseResponse
 	return response, nil
 }
 
@@ -255,18 +242,25 @@ func (d *Device) GetStatus(ctx context.Context) (*Status, error) {
 		return nil, fmt.Errorf("failed to get status: %w", err)
 	}
 
-	if len(response.Data) < 7 {
-		return nil, fmt.Errorf("invalid status response length: expected 7, got %d", len(response.Data))
-	}
+	// Convertir contadores de bytes a uint32
+	leftCount := uint32(response.LeftPedestrianCount[0])<<16 |
+		uint32(response.LeftPedestrianCount[1])<<8 |
+		uint32(response.LeftPedestrianCount[2])
+
+	rightCount := uint32(response.RightPedestrianCount[0])<<16 |
+		uint32(response.RightPedestrianCount[1])<<8 |
+		uint32(response.RightPedestrianCount[2])
 
 	status := &Status{
-		MachineNumber:     response.Data[0],
-		Direction:         PassageDirection(response.Data[1]),
-		Position:          response.Data[2],
-		Reserved:          response.Data[3],
-		Memory:            response.Data[4],
-		SystemVoltage:     response.Data[5],
-		SystemTemperature: response.Data[6],
+		MachineNumber:        response.MachineNumber,
+		VersionNumber:        response.VersionNumber,
+		FaultEvent:           response.FaultEvent,
+		GateStatus:           response.GateStatus,
+		AlarmEvent:           response.AlarmEvent,
+		InfraredStatus:       response.InfraredStatus,
+		PowerSupplyVoltage:   response.PowerSupplyVoltage,
+		LeftPedestrianCount:  leftCount,
+		RightPedestrianCount: rightCount,
 	}
 
 	return status, nil
@@ -370,13 +364,9 @@ func (d *Device) GetDeviceInfo(ctx context.Context) (*DeviceInfo, error) {
 		return nil, fmt.Errorf("failed to get device info: %w", err)
 	}
 
-	if len(response.Data) < 1 {
-		return nil, fmt.Errorf("invalid device info response length: expected at least 1, got %d", len(response.Data))
-	}
-
 	info := &DeviceInfo{
-		Version:     [3]uint8{1, 0, 0}, // Versión por defecto
-		MachineType: response.Data[0],  // Usar el número de máquina como tipo
+		Version:     [3]uint8{response.VersionNumber, 0, 0}, // Usar VersionNumber de la respuesta
+		MachineType: response.MachineNumber,                 // Usar el número de máquina como tipo
 	}
 
 	return info, nil

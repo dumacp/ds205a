@@ -45,10 +45,14 @@ func main() {
 		log.Printf("Warning: Could not get status: %v", err)
 	} else {
 		fmt.Printf("Machine Number: %d\n", status.MachineNumber)
-		fmt.Printf("Position: %d\n", status.Position)
-		fmt.Printf("Memory: %d\n", status.Memory)
-		fmt.Printf("System Voltage: %d\n", status.SystemVoltage)
-		fmt.Printf("Temperature: %d\n", status.SystemTemperature)
+		fmt.Printf("Version Number: %d\n", status.VersionNumber)
+		fmt.Printf("Fault Event: 0x%02X\n", status.FaultEvent)
+		fmt.Printf("Gate Status: 0x%02X\n", status.GateStatus)
+		fmt.Printf("Alarm Event: 0x%02X\n", status.AlarmEvent)
+		fmt.Printf("Infrared Status: 0x%02X\n", status.InfraredStatus)
+		fmt.Printf("Power Supply Voltage: %d\n", status.PowerSupplyVoltage)
+		fmt.Printf("Left Pedestrian Count: %d\n", status.LeftPedestrianCount)
+		fmt.Printf("Right Pedestrian Count: %d\n", status.RightPedestrianCount)
 	}
 
 	// Deshabilitar restricciones (permitir paso libre)
