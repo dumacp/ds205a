@@ -122,23 +122,23 @@ func BuildCommand(deviceID byte, cmd CommandType, data []byte) ([]byte, error) {
 	// Frame structure: [Header][Undefined][MachineNumber][Command][Data0][Data1][Data2][Checksum]
 	frame := make([]byte, FrameSize)
 
-	frame[0] = FrameHeader    // 0x7E - Starting Position
-	frame[1] = FrameUndefined // 0x00 - Undefined
-	frame[2] = deviceID       // Machine Number
-	frame[3] = byte(cmd)      // Command Value
+	frame = append(frame, FrameHeader)    // 0x7E - Starting Position
+	frame = append(frame, FrameUndefined) // 0x00 - Undefined
+	frame = append(frame, deviceID)       // Machine Number
+	frame = append(frame, byte(cmd))      // Command Value
 
 	// Data bytes (3 bytes, pad with 0x00 if less)
 	for i := 0; i < DataSize; i++ {
 		if i < len(data) {
-			frame[4+i] = data[i]
+			frame = append(frame, data[i])
 		} else {
-			frame[4+i] = 0x00
+			frame = append(frame, 0x00)
 		}
 	}
 
 	// Calculate checksum using algorithm from doc (exclude header and checksum position)
-	checksum := CalculateTxChecksum(frame[1:7])
-	frame[7] = checksum
+	checksum := CalculateTxChecksum(frame[0:])
+	frame = append(frame, checksum)
 
 	return frame, nil
 }
