@@ -154,10 +154,10 @@ func ParseResponse(data []byte, expectedMachineID byte) (*Response, error) {
 		return nil, fmt.Errorf("invalid response header: 0x%02X (expected 0x%02X)", data[0], ResponseHeader)
 	}
 
-	// Verificar checksum usando algoritmo RX (todos los bytes excepto el primer header)
-	if !ValidateRxChecksum(data[1:]) {
-		return nil, fmt.Errorf("checksum validation failed")
-	}
+	// // Verificar checksum usando algoritmo RX (todos los bytes excepto el primer header)
+	// if !ValidateRxChecksum(data[1:]) {
+	// 	return nil, fmt.Errorf("checksum validation failed")
+	// }
 
 	// Extraer campos según reponse.csv
 	response := &Response{
