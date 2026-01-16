@@ -120,7 +120,7 @@ func BuildCommand(deviceID byte, cmd CommandType, data []byte) ([]byte, error) {
 	}
 
 	// Frame structure: [Header][Undefined][MachineNumber][Command][Data0][Data1][Data2][Checksum]
-	frame := make([]byte, FrameSize)
+	frame := make([]byte, 0)
 
 	frame = append(frame, FrameHeader)    // 0x7E - Starting Position
 	frame = append(frame, FrameUndefined) // 0x00 - Undefined
