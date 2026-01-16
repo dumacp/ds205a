@@ -130,7 +130,7 @@ func (d *Device) Read(ctx context.Context, buffer []byte) (int, error) {
 	tempBuffer := make([]byte, 32) // Leer chunks más grandes
 
 	// Leer datos hasta encontrar trama completa o timeout
-	maxReadAttempts := 3
+	maxReadAttempts := 30
 
 	initialByte := false
 
