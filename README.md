@@ -79,7 +79,10 @@ go build -o ds205a-cli ./cmd/ds205a-cli
 ds205a-cli -cmd status
 
 # Abrir paso izquierdo con baudrate personalizado
-ds205a-cli -port /dev/ttyUSB0 -baud 115200 -cmd left-open -value 1
+ds205a-cli -port /dev/ttyUSB0 -baud 115200 -cmd left-open -value1 1
+
+# Configuracion de parametros internos value1 = Menu , value2 = 2
+ds205a-cli -port /dev/ttyUSB0 -baud 115200 -cmd set-param -value1 1 -value2 1
 
 # Deshabilitar restricciones de paso
 ds205a-cli -cmd disable-restrictions

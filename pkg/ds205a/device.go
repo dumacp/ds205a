@@ -153,6 +153,6 @@ func (t *Turnstile) Reset(ctx context.Context) error {
 }
 
 // SetParameters establece parámetros del dispositivo
-func (t *Turnstile) SetParameters(ctx context.Context, value uint8) error {
-	return t.device.SetParameters(ctx, value)
+func (t *Turnstile) SetParameters(ctx context.Context, value1 uint8, value2 uint8) error {
+	return t.device.SetParameters(ctx, []byte{value1, value2})
 }

@@ -436,8 +436,8 @@ func (d *Device) Reset(ctx context.Context) error {
 }
 
 // SetParameters establece parámetros del dispositivo
-func (d *Device) SetParameters(ctx context.Context, value uint8) error {
-	_, err := d.SendCommand(ctx, protocol.CmdSetParameters, []byte{value})
+func (d *Device) SetParameters(ctx context.Context, value []byte) error {
+	_, err := d.SendCommand(ctx, protocol.CmdSetParameters, value)
 	if err != nil {
 		return fmt.Errorf("failed to set parameters: %w", err)
 	}

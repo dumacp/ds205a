@@ -39,7 +39,8 @@ func main() {
 		deviceID = flag.Int("id", 1, "Device ID")
 		timeout  = flag.Duration("timeout", 5*time.Second, "Operation timeout")
 		command  = flag.String("cmd", "", "Command to execute (see available commands below)")
-		value    = flag.Int("value", 1, "Value parameter for commands that require it")
+		value1   = flag.Int("value1", 1, "Value parameter for commands that require it")
+		value2   = flag.Int("value2", 0, "Value parameter for commands that require it for command (set-params)")
 		verbose  = flag.String("verbose", "warn", "Log level: silent, error, warn, info, debug")
 	)
 
@@ -55,7 +56,8 @@ func main() {
 		fmt.Printf("\nExamples:\n")
 		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdStatus)
 		fmt.Printf("  %s -port /dev/ttyUSB1 -baud 115200 -cmd %s\n", os.Args[0], CmdInfo)
-		fmt.Printf("  %s -cmd %s -value 1\n", os.Args[0], CmdLeftOpen)
+		fmt.Printf("  %s -cmd %s -value1 1\n", os.Args[0], CmdLeftOpen)
+		fmt.Printf("  %s -cmd %s -value1 1 -value2 1\n", os.Args[0], CmdSetParams)
 		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdDisableRestrictions)
 		fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdCloseGate)
 		fmt.Printf("  %s -verbose info -cmd %s    # Enable info logging\n", os.Args[0], CmdStatus)
@@ -101,24 +103,24 @@ func main() {
 	defer cancel()
 
 	// Ejecutar comando
-	err = executeCommand(device, Command(*command), *value, ctx)
+	err = executeCommand(device, Command(*command), *value1, *value2, ctx)
 	if err != nil {
 		log.Fatalf("Command failed: %v", err)
 	}
 }
 
-func executeCommand(device *ds205a.Turnstile, cmd Command, value int, ctx context.Context) error {
+func executeCommand(device *ds205a.Turnstile, cmd Command, value1 int, value2 int, ctx context.Context) error {
 	switch cmd {
 	case CmdStatus:
 		return cmdStatus(device, ctx)
 	case CmdInfo:
 		return cmdInfo(device, ctx)
 	case CmdLeftOpen:
-		return cmdLeftOpen(device, uint8(value), ctx)
+		return cmdLeftOpen(device, uint8(value1), ctx)
 	case CmdLeftAlwaysOpen:
 		return cmdLeftAlwaysOpen(device, ctx)
 	case CmdRightOpen:
-		return cmdRightOpen(device, uint8(value), ctx)
+		return cmdRightOpen(device, uint8(value1), ctx)
 	case CmdRightAlwaysOpen:
 		return cmdRightAlwaysOpen(device, ctx)
 	case CmdCloseGate:
@@ -134,7 +136,7 @@ func executeCommand(device *ds205a.Turnstile, cmd Command, value int, ctx contex
 	case CmdResetRightCounters:
 		return cmdResetRightCounters(device, ctx)
 	case CmdSetParams:
-		return cmdSetParameters(device, uint8(value), ctx)
+		return cmdSetParameters(device, uint8(value1), uint8(value2), ctx)
 	case CmdReset:
 		return cmdReset(device, ctx)
 	default:
@@ -223,9 +225,9 @@ func cmdResetRightCounters(device *ds205a.Turnstile, ctx context.Context) error 
 	return device.ResetRightCounters(ctx)
 }
 
-func cmdSetParameters(device *ds205a.Turnstile, value uint8, ctx context.Context) error {
-	fmt.Printf("Setting parameters with value %d...\n", value)
-	return device.SetParameters(ctx, value)
+func cmdSetParameters(device *ds205a.Turnstile, value1 uint8, value2 uint8, ctx context.Context) error {
+	fmt.Printf("Setting parameters with Menu %d y/o value %d...\n", value1, value2)
+	return device.SetParameters(ctx, value1, value2)
 }
 
 func cmdReset(device *ds205a.Turnstile, ctx context.Context) error {
@@ -286,6 +288,7 @@ func printUsage() {
 	fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdStatus)
 	fmt.Printf("  %s -port /dev/ttyUSB1 -baud 115200 -cmd %s\n", os.Args[0], CmdInfo)
 	fmt.Printf("  %s -cmd %s -value 1\n", os.Args[0], CmdLeftOpen)
+	fmt.Printf("  %s -cmd %s -value1 1 -value2 1\n", os.Args[0], CmdSetParams)
 	fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdDisableRestrictions)
 	fmt.Printf("  %s -cmd %s\n", os.Args[0], CmdCloseGate)
 	fmt.Println()
@@ -329,7 +332,7 @@ func printCommandsHelp() {
 		fmt.Printf("  %s:\n", category)
 		for _, cmdInfo := range cmds {
 			if cmdInfo.needsValue {
-				fmt.Printf("    %-20s - %s (use -value <num>)\n", cmdInfo.cmd, cmdInfo.desc)
+				fmt.Printf("    %-20s - %s (use -value1 <num>)\n", cmdInfo.cmd, cmdInfo.desc)
 			} else {
 				fmt.Printf("    %-20s - %s\n", cmdInfo.cmd, cmdInfo.desc)
 			}

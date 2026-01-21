@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug ds205a-cli",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/ds205a-cli",
+            "args": [
+                "-port", "/dev/ttyUSB0",
+                "-verbose", "debug",
+                "-baud", "19200",
+                "-cmd", "set-params",
+                "-value1", "3",
+                "-value2", "3"
+            ],
+            "env": {},
+            "buildFlags": "-gcflags=all=-N"
+        }
+    ]
+}
