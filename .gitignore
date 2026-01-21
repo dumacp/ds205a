@@ -1,1 +1,45 @@
 ds205a-cli
+# Logs
+*.log
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/cmd/*/cmd
+/cmd/ds205a-cli/ds205a-cli
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Configuration files with sensitive data
+config.yaml
+config.json
+*.env
+
+# Build artifacts
+/bin/
+/build/
+/dist/
